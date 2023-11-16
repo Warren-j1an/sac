@@ -1,0 +1,43 @@
+logdir: 'results/'
+device: cuda
+use_tb: true
+utd: 1
+num_train_frames: 3e6
+num_eval_episodes: 10
+eval_every: 1e5
+log_every: 1e4
+update_start: 10000
+save_every: 1e5
+
+# env
+task: quadruped_walk
+action_repeat: 2
+discount: 0.99
+vision: false
+height: 84  # 64
+weight: 84
+
+# replay
+capacity: 2e6
+ongoing: False
+min_len: 50
+max_len: 50
+prioritize_ends: true
+batch: 16
+length: 50
+
+# agent
+feature_dim: 50
+hidden_dim: 1024
+init_temperature: 0.1
+alpha_lr: 1e-4
+actor_lr: 1e-4
+encoder_lr: 1e-4
+critic_lr: 1e-4
+critic_tau: 0.005
+critic_target_update_frequency: 1
+learnable_temperature: true
+stddev_schedule: 'linear(1.0,0.1,500000)'
+
+# replay buffer
+frame_stack: 3
