@@ -2,9 +2,10 @@
 #
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
-from collections import deque
-from typing import Any, NamedTuple
+import os
+os.environ['MUJOCO_GL'] = 'egl'
 
+from typing import Any, NamedTuple
 import dm_env
 import numpy as np
 from dm_control import manipulation, suite
@@ -175,8 +176,6 @@ class ExtendedTimeStepWrapper(dm_env.Environment):
 
 
 def make(name, action_repeat, seed, vision, height=84, width=84):
-    import os
-    os.environ['MUJOCO_GL'] = 'egl'
     domain, task = name.split('_', 1)
     # overwrite cup to ball_in_cup
     domain = dict(cup='ball_in_cup').get(domain, domain)
