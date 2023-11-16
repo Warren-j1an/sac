@@ -175,6 +175,8 @@ class ExtendedTimeStepWrapper(dm_env.Environment):
 
 
 def make(name, action_repeat, seed, vision, height=84, width=84):
+    import os
+    os.environ['MUJOCO_GL'] = 'egl'
     domain, task = name.split('_', 1)
     # overwrite cup to ball_in_cup
     domain = dict(cup='ball_in_cup').get(domain, domain)
