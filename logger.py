@@ -56,9 +56,13 @@ class Logger:
 
 
 class TerminalOutput:
+    def __init__(self):
+        self.keys = ['eval_reward', 'eval_episode', 'train_reward', 'episode_length', 'episode', 'total_steps', 'total_episodes', 'loaded_steps',
+                     'loaded_episodes', 'fps']
+
     def __call__(self, summaries):
         step = max(s for s, _, _, in summaries)
-        scalars = {k: float(v) for _, k, v in summaries if len(v.shape) == 0}
+        scalars = {k: float(v) for _, k, v in summaries if len(v.shape) == 0 and k in self.keys}
         formatted = {k: self._format_value(v) for k, v in scalars.items()}
         print(f'[{step}]', ' / '.join(f'{k} {v}' for k, v in formatted.items()))
 

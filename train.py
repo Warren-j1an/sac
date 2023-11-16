@@ -52,7 +52,7 @@ class Workspace:
         metrics = collections.defaultdict(list)
         time_step = self.train_env.reset()
         self.replay_buffer.add_step(time_step)
-        while step < self.configs.num_train_frames:
+        while step * self.configs.action_repeat < self.configs.num_train_frames:
             if step % self.configs.eval_every == 0:
                 self.eval(step)
 

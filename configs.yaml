@@ -4,10 +4,10 @@ use_tb: true
 utd: 1
 num_train_frames: 3e6
 num_eval_episodes: 10
-eval_every: 1e5
-log_every: 1e4
-update_start: 10000
+eval_every: 1e4
+log_every: 2e3
 save_every: 1e5
+update_start: 10000
 
 # env
 task: quadruped_walk
