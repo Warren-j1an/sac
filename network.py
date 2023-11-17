@@ -31,6 +31,8 @@ class Actor(nn.Module):
     def __init__(self, repr_dim, action_shape, feature_dim, hidden_dim):
         super().__init__()
 
+        self.min_std = 0.1
+
         self.trunk = nn.Sequential(nn.Linear(repr_dim, feature_dim),
                                    nn.LayerNorm(feature_dim), nn.Tanh())
 
@@ -38,15 +40,15 @@ class Actor(nn.Module):
                                     nn.ReLU(inplace=True),
                                     nn.Linear(hidden_dim, hidden_dim),
                                     nn.ReLU(inplace=True),
-                                    nn.Linear(hidden_dim, action_shape[0]))
+                                    nn.Linear(hidden_dim, 2 * action_shape[0]))
 
         self.apply(utils.weight_init)
 
     def forward(self, obs, std):
         h = self.trunk(obs)
-        mu = self.policy(h)
+        mu, std = self.policy(h).chunk(2, dim=-1)
         mu = torch.tanh(mu)
-        std = torch.ones_like(mu) * std
+        std = torch.sigmoid(std) + self.min_std
 
         dist = utils.TruncatedNormal(mu, std)
         return dist
