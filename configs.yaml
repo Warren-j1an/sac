@@ -39,5 +39,10 @@ critic_target_update_frequency: 1
 learnable_temperature: true
 stddev_schedule: 'linear(1.0,0.1,500000)'
 
+# data distillation
+use_dd: true
+dd_num: 100
+dd_lr: 1e-4
+
 # replay buffer
 frame_stack: 3

@@ -1,4 +1,5 @@
 import collections
+from dataset_distillation import DatasetDistillation
 import dmc
 from logger import Logger, TerminalOutput, JSONLOutput, TensorBoardOutput
 import numpy as np
@@ -36,6 +37,13 @@ class Workspace:
                               self.configs.critic_target_update_frequency, self.configs.learnable_temperature,
                               self.configs.stddev_schedule, self.configs.use_tb, self.configs.vision)
 
+        if self.configs.use_dd:
+            self.dataset_distillation = DatasetDistillation(self.configs.dd_num,
+                                                            self.train_env.observation_spec().shape,
+                                                            self.train_env.action_spec().shape,
+                                                            self.configs.action_repeat, self.configs.discount,
+                                                            self.configs.dd_lr, self.configs.device)
+
         outputs = [
             TerminalOutput(),
             JSONLOutput(logdir),
@@ -55,8 +63,9 @@ class Workspace:
         while step * self.configs.action_repeat < self.configs.num_train_frames:
             if step % self.configs.eval_every == 0:
                 self.eval(step)
+                print('start train:')
 
-            action = self.agent.act(time_step.observation, step, False)
+            action = self.agent.act(time_step.observation, False)
             time_step = self.train_env.step(action)
             self.replay_buffer.add_step(time_step)
             episode_reward += time_step.reward
@@ -81,11 +90,19 @@ class Workspace:
                 self.logger.write(step, True)
 
             if step > self.configs.update_start:
-                met = self.agent.update(self.replay_buffer.dataset(self.configs.batch, self.configs.length), step)
+                batch = next(self.replay_buffer.dataset(self.configs.batch, self.configs.length))
+                if self.configs.use_dd:
+                    met = (self.dataset_distillation.update(self.agent, batch))
+                    met.update(self.agent.update(self.dataset_distillation.get_data(batch), step))
+                else:
+                    met = self.agent.update(batch, step)
                 [metrics[key].append(value) for key, value in met.items()]
 
             if step % self.configs.save_every == 0:
                 self.save()
+
+        self.eval(step)
+        self.save()
 
     def eval(self, step):
         print('start evaluate:')
@@ -94,7 +111,7 @@ class Workspace:
             episode_reward = 0
             time_step = self.eval_env.reset()
             while not time_step.last():
-                action = self.agent.act(time_step.observation, step, True)
+                action = self.agent.act(time_step.observation, True)
                 time_step = self.eval_env.step(action)
                 episode_reward += time_step.reward
             reward += episode_reward
@@ -102,7 +119,6 @@ class Workspace:
         self.logger.scalar('eval_reward', reward, step)
         self.logger.scalar('eval_episode', self.configs.num_eval_episodes, step)
         self.logger.write(step, True)
-        print('start train:')
 
     def save(self):
         filename = self.configs.logdir + '/snapshot.pt'

@@ -95,3 +95,32 @@ class ObjDict(dict):
                 yaml.dump(dict(self), f)
         else:
             raise NotImplementedError(filename.suffix)
+
+
+def match_loss(gw_syn, gw_real, device, distant):
+    dis = torch.tensor(0.0).to(device)
+
+    if distant == 'mse':
+        gw_real_vec = []
+        gw_syn_vec = []
+        for ig in range(len(gw_real)):
+            gw_real_vec.append(gw_real[ig].reshape((-1)))
+            gw_syn_vec.append(gw_syn[ig].reshape((-1)))
+        gw_real_vec = torch.cat(gw_real_vec, dim=0)
+        gw_syn_vec = torch.cat(gw_syn_vec, dim=0)
+        dis = torch.sum((gw_syn_vec - gw_real_vec)**2)
+
+    elif distant == 'cos':
+        gw_real_vec = []
+        gw_syn_vec = []
+        for ig in range(len(gw_real)):
+            gw_real_vec.append(gw_real[ig].reshape((-1)))
+            gw_syn_vec.append(gw_syn[ig].reshape((-1)))
+        gw_real_vec = torch.cat(gw_real_vec, dim=0)
+        gw_syn_vec = torch.cat(gw_syn_vec, dim=0)
+        dis = 1 - torch.sum(gw_real_vec * gw_syn_vec, dim=-1) / (torch.norm(gw_real_vec, dim=-1) * torch.norm(gw_syn_vec, dim=-1) + 0.000001)
+
+    else:
+        exit('unknown distance function: %s'%distant)
+
+    return dis

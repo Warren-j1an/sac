@@ -120,10 +120,9 @@ class SACAgent:
 
         return metrics
 
-    def update(self, replay_iter, step):
+    def update(self, batch, step):
         metrics = dict()
 
-        batch = next(replay_iter)
         obs, action, reward, discount, next_obs = utils.to_torch(batch, self.device)
 
         if self.vision:
