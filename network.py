@@ -44,7 +44,7 @@ class Actor(nn.Module):
 
         self.apply(utils.weight_init)
 
-    def forward(self, obs, std):
+    def forward(self, obs):
         h = self.trunk(obs)
         mu, std = self.policy(h).chunk(2, dim=-1)
         mu = torch.tanh(mu)

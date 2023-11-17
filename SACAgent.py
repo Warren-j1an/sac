@@ -48,20 +48,18 @@ class SACAgent:
     def alpha(self):
         return self.log_alpha.exp()
 
-    def act(self, obs, step, eval_mode):
+    def act(self, obs, eval_mode):
         obs = torch.as_tensor(obs, device=self.device)
         obs = self.encoder(obs.unsqueeze(0)) if self.vision else obs.unsqueeze(0)
-        stddev = utils.schedule(self.stddev_schedule, step)
-        dist = self.actor(obs, stddev)
+        dist = self.actor(obs)
         action = dist.mean if eval_mode else dist.sample()
         return action.cpu().detach().numpy()[0]
 
-    def update_critic(self, obs, action, reward, discount, next_obs, step):
+    def update_critic(self, obs, action, reward, discount, next_obs):
         metrics = dict()
 
         with torch.no_grad():
-            stddev = utils.schedule(self.stddev_schedule, step)
-            dist = self.actor(next_obs, stddev)
+            dist = self.actor(next_obs)
             next_action = dist.sample()
             log_prob = dist.log_prob(next_action).sum(-1, keepdim=True)
             target_Q1, target_Q2 = self.critic_target(next_obs, next_action)
@@ -88,11 +86,10 @@ class SACAgent:
 
         return metrics
 
-    def update_actor(self, obs, step):
+    def update_actor(self, obs):
         metrics = dict()
 
-        stddev = utils.schedule(self.stddev_schedule, step)
-        dist = self.actor(obs, stddev)
+        dist = self.actor(obs)
         action = dist.sample()
         log_prob = dist.log_prob(action).sum(-1, keepdim=True)
         Q1, Q2 = self.critic(obs, action)
@@ -136,8 +133,8 @@ class SACAgent:
         if self.use_tb:
             metrics['batch_reward'] = reward.mean().item()
 
-        metrics.update(self.update_critic(obs, action, reward, discount, next_obs, step))
-        metrics.update(self.update_actor(obs.detach(), step))
+        metrics.update(self.update_critic(obs, action, reward, discount, next_obs))
+        metrics.update(self.update_actor(obs.detach()))
 
         if step % self.critic_target_update_frequency == 0:
             utils.soft_update_params(self.critic, self.critic_target, self.critic_tau)
