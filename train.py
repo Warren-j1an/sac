@@ -32,10 +32,10 @@ class Workspace:
 
         self.agent = SACAgent(self.train_env.observation_spec().shape, self.train_env.action_spec().shape,
                               self.configs.device, self.configs.feature_dim, self.configs.hidden_dim,
-                              self.configs.init_temperature, self.configs.alpha_lr, self.configs.actor_lr,
-                              self.configs.encoder_lr, self.configs.critic_lr, self.configs.critic_tau,
-                              self.configs.critic_target_update_frequency, self.configs.learnable_temperature,
-                              self.configs.stddev_schedule, self.configs.use_tb, self.configs.vision)
+                              self.configs.ensemble, self.configs.init_temperature, self.configs.alpha_lr,
+                              self.configs.actor_lr, self.configs.encoder_lr, self.configs.critic_lr,
+                              self.configs.critic_tau, self.configs.critic_target_update_frequency,
+                              self.configs.learnable_temperature, self.configs.use_tb, self.configs.vision)
 
         if self.configs.use_dd:
             self.dataset_distillation = DatasetDistillation(self.configs.dd_num,
@@ -90,12 +90,14 @@ class Workspace:
                 self.logger.write(step, True)
 
             if step > self.configs.update_start:
-                batch = next(self.replay_buffer.dataset(self.configs.batch, self.configs.length))
-                if self.configs.use_dd:
-                    met = (self.dataset_distillation.update(self.agent, batch))
-                    met.update(self.agent.update(self.dataset_distillation.get_data(batch), step))
-                else:
-                    met = self.agent.update(batch, step)
+                met = {}
+                for _ in range(self.configs.utd):
+                    batch = next(self.replay_buffer.dataset(self.configs.batch, self.configs.length))
+                    if self.configs.use_dd:
+                        met.update(self.dataset_distillation.update(self.agent, batch))
+                        met.update(self.agent.update(self.dataset_distillation.get_data(batch), step))
+                    else:
+                        met.update(self.agent.update(batch, step))
                 [metrics[key].append(value) for key, value in met.items()]
 
             if step % self.configs.save_every == 0:

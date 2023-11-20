@@ -29,6 +29,7 @@ length: 50
 # agent
 feature_dim: 50
 hidden_dim: 1024
+ensemble: 1
 init_temperature: 0.1
 alpha_lr: 1e-4
 actor_lr: 1e-4
@@ -37,10 +38,9 @@ critic_lr: 1e-4
 critic_tau: 0.005
 critic_target_update_frequency: 1
 learnable_temperature: true
-stddev_schedule: 'linear(1.0,0.1,500000)'
 
 # data distillation
-use_dd: true
+use_dd: false
 dd_num: 100
 dd_lr: 1e-4
 
