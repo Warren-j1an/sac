@@ -37,13 +37,6 @@ class Workspace:
                               self.configs.critic_tau, self.configs.critic_target_update_frequency,
                               self.configs.learnable_temperature, self.configs.use_tb, self.configs.vision)
 
-        if self.configs.use_dd:
-            self.dataset_distillation = DatasetDistillation(self.configs.dd_num,
-                                                            self.train_env.observation_spec().shape,
-                                                            self.train_env.action_spec().shape,
-                                                            self.configs.action_repeat, self.configs.discount,
-                                                            self.configs.dd_lr, self.configs.device)
-
         outputs = [
             TerminalOutput(),
             JSONLOutput(logdir),
@@ -93,11 +86,7 @@ class Workspace:
                 met = {}
                 for _ in range(self.configs.utd):
                     batch = next(self.replay_buffer.dataset(self.configs.batch, self.configs.length))
-                    if self.configs.use_dd:
-                        met.update(self.dataset_distillation.update(self.agent, batch))
-                        met.update(self.agent.update(self.dataset_distillation.get_data(batch), step))
-                    else:
-                        met.update(self.agent.update(batch, step))
+                    met.update(self.agent.update(batch, step))
                 [metrics[key].append(value) for key, value in met.items()]
 
             if step % self.configs.save_every == 0:
