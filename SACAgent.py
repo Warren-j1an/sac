@@ -39,6 +39,8 @@ class SACAgent:
         for i in range(ensemble):
             self.critic_target[i].train()
 
+        self.max_Q = [0, 0]  # for categorical dataset
+
     def train(self, training=True):
         self.training = training
         if self.vision:
@@ -82,6 +84,8 @@ class SACAgent:
             for i in range(self.ensemble):
                 metrics[f'critic_q{i}_1'] = Q1[i].mean().item()
                 metrics[f'critic_q{i}_2'] = Q2[i].mean().item()
+                self.max_Q[0] = max(self.max_Q[0], torch.max(Q1[i]).item())
+                self.max_Q[1] = max(self.max_Q[1], torch.max(Q2[i]).item())
             metrics['critic_loss'] = critic_loss.item()
 
         # Optimize the critic
