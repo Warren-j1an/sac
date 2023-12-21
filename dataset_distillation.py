@@ -5,10 +5,11 @@ import utils
 
 
 class DatasetDistillation:
-    def __init__(self, num, obs_shape, act_shape, action_repeat, discount, lr, device):
+    def __init__(self, num, agent, obs_shape, act_shape, action_repeat, discount, lr, device):
         self.num = num
         self.step_reward = action_repeat * 1
         self.device = device
+        self.critic_target = agent.critic_target
 
         self.obs = torch.tensor(np.random.rand(num, *obs_shape),
                                 dtype=torch.float, requires_grad=True, device=device)

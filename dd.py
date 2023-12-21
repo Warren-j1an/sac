@@ -1,4 +1,6 @@
 import collections
+import os.path
+
 from dataset_distillation import DatasetDistillation
 import dmc
 from logger import Logger, TerminalOutput, JSONLOutput, TensorBoardOutput
@@ -23,6 +25,7 @@ class Workspace:
         if not load_dir.is_dir():
             raise ValueError("Load dir not exists.")
         log_dir = pathlib.Path(str(load_dir).replace('results', 'distillation_result')).expanduser()
+        self.configs.logdir = str(log_dir)
         print('load dir:', str(load_dir))
         print('log dir', str(log_dir))
         log_dir.mkdir(parents=True, exist_ok=True)
@@ -32,12 +35,11 @@ class Workspace:
         self.eval_env = dmc.make(self.configs.task, self.configs.action_repeat, self.configs.seed, self.configs.vision,
                                  self.configs.height, self.configs.weight)
 
-        self.agent = SACAgent(self.train_env.observation_spec().shape, self.train_env.action_spec().shape,
-                              self.configs.device, self.configs.feature_dim, self.configs.hidden_dim,
-                              self.configs.ensemble, self.configs.init_temperature, self.configs.alpha_lr,
-                              self.configs.actor_lr, self.configs.encoder_lr, self.configs.critic_lr,
-                              self.configs.critic_tau, self.configs.critic_target_update_frequency,
-                              self.configs.learnable_temperature, self.configs.use_tb, self.configs.vision)
+        self.agent = None
+        if os.path.exists(str(load_dir) + '/snapshot.pt'):
+            self.load(str(load_dir) + '/snapshot.pt')
+        else:
+            raise ValueError('Load agent not exists.')
 
         outputs = [
             TerminalOutput(),
@@ -49,7 +51,8 @@ class Workspace:
         self.replay_buffer = Replay(str(load_dir) + '/episode', self.configs.capacity,
                                     self.configs.min_len, self.configs.max_len, self.configs.discount,
                                     self.configs.seed, self.configs.ongoing, self.configs.prioritize_ends)
-        print(self.replay_buffer.stats)
+
+        self.eval(self.replay_buffer.total_steps)
 
     def train(self):
         step, episode_reward, episode_step, episode = 0, 0, 0, 0
@@ -115,16 +118,11 @@ class Workspace:
         self.logger.write(step, True)
 
     def save(self):
-        filename = self.configs.logdir + '/snapshot.pt'
-        filename = pathlib.Path(filename).expanduser()
-        keys_to_save = ['agent']
-        payload = {k: self.__dict__[k] for k in keys_to_save}
-        with filename.open('wb') as f:
-            torch.save(payload, f)
+        # TODO
+        pass
 
-    def load(self):
-        filename = self.configs.logdir + '/snapshot.pt'
-        filename = pathlib.Path(filename).expanduser()
+    def load(self, path):
+        filename = pathlib.Path(path).expanduser()
         with filename.open('rb') as f:
             payload = torch.load(f)
         for k, v in payload.items():
