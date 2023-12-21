@@ -1,4 +1,5 @@
 import collections
+from dataset_distillation import DatasetDistillation
 import dmc
 from logger import Logger, TerminalOutput, JSONLOutput, TensorBoardOutput
 import numpy as np
@@ -18,11 +19,13 @@ class Workspace:
         self.configs = yaml_load.load((pathlib.Path(sys.argv[0]).parent / 'configs.yaml').read_text())
         self.configs = utils.ObjDict(self.configs)
         self.configs = get_parser(self.configs)
-
-        logdir = pathlib.Path(self.configs.logdir).expanduser()
-        logdir.mkdir(parents=True, exist_ok=True)
-        self.configs.save(logdir / 'config.yaml')
-        print('Log dir:', logdir)
+        load_dir = pathlib.Path(self.configs.logdir).expanduser()
+        if not load_dir.is_dir():
+            raise ValueError("Load dir not exists.")
+        log_dir = pathlib.Path(str(load_dir).replace('results', 'distillation_result')).expanduser()
+        print('load dir:', str(load_dir))
+        print('log dir', str(log_dir))
+        log_dir.mkdir(parents=True, exist_ok=True)
 
         self.train_env = dmc.make(self.configs.task, self.configs.action_repeat, self.configs.seed, self.configs.vision,
                                   self.configs.height, self.configs.weight)
@@ -38,14 +41,15 @@ class Workspace:
 
         outputs = [
             TerminalOutput(),
-            JSONLOutput(logdir),
-            TensorBoardOutput(logdir) if self.configs.use_tb else None,
+            JSONLOutput(log_dir),
+            TensorBoardOutput(log_dir) if self.configs.use_tb else None,
         ]
         self.logger = Logger(outputs, self.configs.action_repeat)
 
-        self.replay_buffer = Replay(self.configs.logdir + '/episode', self.configs.capacity,
+        self.replay_buffer = Replay(str(load_dir) + '/episode', self.configs.capacity,
                                     self.configs.min_len, self.configs.max_len, self.configs.discount,
                                     self.configs.seed, self.configs.ongoing, self.configs.prioritize_ends)
+        print(self.replay_buffer.stats)
 
     def train(self):
         step, episode_reward, episode_step, episode = 0, 0, 0, 0
@@ -129,4 +133,4 @@ class Workspace:
 
 if __name__ == '__main__':
     work = Workspace()
-    work.train()
+    # work.train()

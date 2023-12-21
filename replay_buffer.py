@@ -13,7 +13,7 @@ def episode_len(episode):
 def count_episodes(directory):
     filenames = list(directory.glob('*.npz'))
     num_episodes = len(filenames)
-    num_steps = sum(int(str(n).split('-')[-1][:-4]) - 1 for n in filenames)
+    num_steps = sum(int(str(n).split('-')[-1][:-4]) for n in filenames)
     return num_episodes, num_steps
 
 
